@@ -1,10 +1,16 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from 'next/server';
 
+type InlineData = { mimeType?: string; data?: string };
+type CandidatePart = { inlineData?: InlineData; text?: string };
+type Candidate = { content?: { parts?: CandidatePart[] } };
+
 export async function POST(request: NextRequest) {
   console.log('[Image Generation] Request received');
   try {
-    const { beforeText, afterText } = await request.json();
+    const body = (await request.json()) as { beforeText?: unknown; afterText?: unknown };
+    const beforeText = typeof body.beforeText === "string" ? body.beforeText : "";
+    const afterText = typeof body.afterText === "string" ? body.afterText : "";
 
     if (!beforeText || !afterText) {
       console.error('[Image Generation] Missing required fields');
@@ -68,14 +74,15 @@ Output ONLY the generated image. Do not provide a text description.
 
       console.log('[Image Generation] API Response received');
       
-      const candidate = response.candidates?.[0];
-      if (!candidate || !candidate.content || !candidate.content.parts) {
+      const candidate = (response.candidates?.[0] ?? null) as Candidate | null;
+      const parts = candidate?.content?.parts;
+      if (!candidate || !parts) {
          throw new Error('No candidate content found');
       }
 
       // すべてのパートをチェックして画像データを探す
-      let imageData: any = null;
-      for (const part of candidate.content.parts) {
+      let imageData: InlineData | null = null;
+      for (const part of parts) {
         if (part.inlineData) {
             imageData = part.inlineData;
             break;
@@ -88,22 +95,23 @@ Output ONLY the generated image. Do not provide a text description.
           success: true,
           image: {
             mimeType: imageData.mimeType || 'image/png',
-            data: imageData.data,
+            data: imageData.data ?? "",
           },
         });
       } else {
         console.error('[Image Generation] No inlineData found in any part.');
         // テキストパートがあればログ出力
-        const textParts = candidate.content.parts.filter((p: any) => p.text).map((p: any) => p.text);
+        const textParts = parts.filter((p) => p.text).map((p) => p.text);
         if (textParts.length > 0) {
             console.error('[Image Generation] Received text response instead:', textParts.join('\n'));
         }
       }
 
-    } catch (apiError: any) {
+    } catch (apiError: unknown) {
       console.error('[Image Generation] API Specific Error:', apiError);
-      if (apiError.response) {
-        console.error('[Image Generation] API Error Response:', JSON.stringify(apiError.response, null, 2));
+      const maybeWithResponse = apiError as { response?: unknown };
+      if (maybeWithResponse?.response) {
+        console.error('[Image Generation] API Error Response:', JSON.stringify(maybeWithResponse.response, null, 2));
       }
       throw apiError;
     }

@@ -4,6 +4,7 @@ import { fallbackConvert } from "@/lib/convert/fallback";
 export const runtime = "nodejs";
 
 type Style = "前向き";
+type ConvertRequestBody = { text?: unknown; style?: unknown };
 
 const RATE_WINDOW_MS = 60_000;
 const RATE_LIMIT = 20; // per IP / minute
@@ -126,14 +127,12 @@ export async function POST(req: Request) {
     );
   }
 
-  const text =
-    typeof (body as any)?.text === "string" ? (body as any).text.trim() : "";
-  const style =
-    (body as any)?.style === "やわらかく" ||
-    (body as any)?.style === "ビジネス丁寧" ||
-    (body as any)?.style === "前向き"
-      ? ((body as any).style as Style)
-      : ("ビジネス丁寧" as Style);
+  const obj: ConvertRequestBody =
+    typeof body === "object" && body !== null ? (body as ConvertRequestBody) : {};
+
+  const text = typeof obj.text === "string" ? obj.text.trim() : "";
+  // 現状のUIは「前向き」固定。将来拡張に備えて unknown を受け取るが、値は厳密に絞る。
+  const style: Style = obj.style === "前向き" ? "前向き" : "前向き";
 
   if (!text) {
     return NextResponse.json(
