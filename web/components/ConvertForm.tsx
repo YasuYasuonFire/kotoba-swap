@@ -44,12 +44,105 @@ export function ConvertForm({
 
   const seeded = useMemo(() => clampText(seedDraft || ""), [seedDraft]);
 
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+
   const twitterShareUrl = useMemo(() => {
     if (!converted) return "";
     const shareText = `${converted}\n\n#ことばスワップ でポジティブ変換しました✨`;
     const url = typeof window !== 'undefined' ? window.location.origin : 'https://kotoba-swap.com';
     return `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(url)}`;
   }, [converted]);
+
+  // Base64データURLをBlobに変換する関数
+  const dataURLtoBlob = (dataURL: string): Blob => {
+    const arr = dataURL.split(',');
+    const mimeMatch = arr[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  };
+
+  // Web Share APIを使った画像付き共有
+  const shareWithImage = async () => {
+    if (!converted || !generatedImageUrl) return;
+
+    setIsSharing(true);
+    setShareError(null);
+
+    const shareText = `${converted}\n\n#ことばスワップ でポジティブ変換しました✨`;
+    const shareUrl = typeof window !== 'undefined' ? window.location.origin : 'https://kotoba-swap.com';
+
+    try {
+      // Web Share API Level 2 (ファイル共有) に対応しているかチェック
+      if (navigator.share && navigator.canShare) {
+        const blob = dataURLtoBlob(generatedImageUrl);
+        const file = new File([blob], `kotoba-swap-${Date.now()}.png`, { type: 'image/png' });
+
+        const shareData = {
+          text: shareText,
+          url: shareUrl,
+          files: [file],
+        };
+
+        // ファイル共有がサポートされているかチェック
+        if (navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          setIsSharing(false);
+          return;
+        }
+      }
+
+      // ファイル共有非対応の場合: 画像をクリップボードにコピーしてTwitterリンクへ
+      await copyImageToClipboard();
+      
+      // 少し遅延してからTwitterを開く（ユーザーに通知を見せるため）
+      setTimeout(() => {
+        window.open(twitterShareUrl, '_blank');
+      }, 1500);
+
+    } catch (err) {
+      // ユーザーがシェアをキャンセルした場合
+      if (err instanceof Error && err.name === 'AbortError') {
+        setIsSharing(false);
+        return;
+      }
+      
+      // その他のエラー: フォールバック
+      console.error('Share error:', err);
+      await copyImageToClipboard();
+      setTimeout(() => {
+        window.open(twitterShareUrl, '_blank');
+      }, 1500);
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  // 画像をクリップボードにコピー
+  const copyImageToClipboard = async () => {
+    if (!generatedImageUrl) return;
+
+    try {
+      const blob = dataURLtoBlob(generatedImageUrl);
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [blob.type]: blob,
+        }),
+      ]);
+      setShareError('📋 画像をコピーしました！Xの投稿画面で貼り付けてください');
+      setTimeout(() => setShareError(null), 3000);
+    } catch (err) {
+      console.error('Clipboard error:', err);
+      setShareError('画像を保存してから投稿画面で添付してください');
+      setTimeout(() => setShareError(null), 3000);
+    }
+  };
 
   useEffect(() => {
     // 初期入力だけ自動セット（ユーザーが入力し始めた後は上書きしない）
@@ -239,36 +332,77 @@ export function ConvertForm({
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.6 }}
-                className="flex flex-col sm:flex-row gap-2 justify-center"
+                className="flex flex-col gap-3"
               >
-                <button
-                  type="button"
-                  onClick={() => copy(converted)}
-                  className="showa-heisei-button py-2 px-6 text-sm font-medium relative overflow-hidden bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
-                >
-                  {showCopied ? (
-                    <motion.span
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      className="flex items-center gap-1"
-                    >
-                      ✓ コピーしました！
-                    </motion.span>
-                  ) : (
-                    '📋 コピー'
-                  )}
-                </button>
-
-                {twitterShareUrl && (
-                  <a
-                    href={twitterShareUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="showa-heisei-button py-2 px-6 text-sm font-medium bg-black text-white border-black hover:bg-gray-800 hover:border-gray-800 flex items-center justify-center gap-2"
+                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  <button
+                    type="button"
+                    onClick={() => copy(converted)}
+                    className="showa-heisei-button py-2 px-6 text-sm font-medium relative overflow-hidden bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
                   >
-                    <span>𝕏</span> 投稿する
-                  </a>
-                )}
+                    {showCopied ? (
+                      <motion.span
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        className="flex items-center gap-1"
+                      >
+                        ✓ コピーしました！
+                      </motion.span>
+                    ) : (
+                      '📋 コピー'
+                    )}
+                  </button>
+
+                  {twitterShareUrl && (
+                    generatedImageUrl ? (
+                      <button
+                        type="button"
+                        onClick={shareWithImage}
+                        disabled={isSharing}
+                        className="showa-heisei-button py-2 px-6 text-sm font-medium bg-black text-white border-black hover:bg-gray-800 hover:border-gray-800 flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {isSharing ? (
+                          <>
+                            <motion.span
+                              animate={{ rotate: 360 }}
+                              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                            >
+                              ⏳
+                            </motion.span>
+                            共有中...
+                          </>
+                        ) : (
+                          <>
+                            <span>𝕏</span> 画像付きで投稿
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <a
+                        href={twitterShareUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="showa-heisei-button py-2 px-6 text-sm font-medium bg-black text-white border-black hover:bg-gray-800 hover:border-gray-800 flex items-center justify-center gap-2"
+                      >
+                        <span>𝕏</span> 投稿する
+                      </a>
+                    )
+                  )}
+                </div>
+
+                {/* 共有時のフィードバックメッセージ */}
+                <AnimatePresence>
+                  {shareError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="text-center text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded-lg"
+                    >
+                      {shareError}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
 
               {generatingImage && !generatedImageUrl && (
