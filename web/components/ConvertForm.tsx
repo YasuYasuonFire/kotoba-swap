@@ -47,11 +47,16 @@ export function ConvertForm({
   const [isSharing, setIsSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
 
+  // Twitter intent URL（バイラルテキスト込み）
   const twitterShareUrl = useMemo(() => {
     if (!converted) return "";
-    const shareText = `${converted}\n\n#ことばスワップ でポジティブ変換しました✨`;
-    const url = typeof window !== 'undefined' ? window.location.origin : 'https://kotoba-swap.com';
-    return `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(url)}`;
+    const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://kotoba-swap.com';
+    // バイラル効果最大化：ハッシュタグ・CTA・URLを全て含む
+    const viralText = `${converted}
+
+#ことばスワップ でポジティブ変換しました✨
+あなたも試してみて👉 ${siteUrl}`;
+    return `https://twitter.com/intent/tweet?text=${encodeURIComponent(viralText)}`;
   }, [converted]);
 
   // Base64データURLをBlobに変換する関数
@@ -68,6 +73,15 @@ export function ConvertForm({
     return new Blob([u8arr], { type: mime });
   };
 
+  // バイラル用の完全な投稿テキスト（ハッシュタグ・URL込み）
+  const getViralShareText = () => {
+    const siteUrl = typeof window !== 'undefined' ? window.location.origin : 'https://kotoba-swap.com';
+    return `${converted}
+
+#ことばスワップ でポジティブ変換しました✨
+あなたも試してみて👉 ${siteUrl}`;
+  };
+
   // Web Share APIを使った画像付き共有
   const shareWithImage = async () => {
     if (!converted || !generatedImageUrl) return;
@@ -75,8 +89,8 @@ export function ConvertForm({
     setIsSharing(true);
     setShareError(null);
 
-    const shareText = `${converted}\n\n#ことばスワップ でポジティブ変換しました✨`;
-    const shareUrl = typeof window !== 'undefined' ? window.location.origin : 'https://kotoba-swap.com';
+    // バイラル効果最大化：テキストにURL・ハッシュタグを全て含める
+    const viralText = getViralShareText();
 
     try {
       // Web Share API Level 2 (ファイル共有) に対応しているかチェック
@@ -84,9 +98,9 @@ export function ConvertForm({
         const blob = dataURLtoBlob(generatedImageUrl);
         const file = new File([blob], `kotoba-swap-${Date.now()}.png`, { type: 'image/png' });
 
+        // URLは別パラメータではなくテキストに含める（Xアプリの互換性向上）
         const shareData = {
-          text: shareText,
-          url: shareUrl,
+          text: viralText,
           files: [file],
         };
 
@@ -135,13 +149,21 @@ export function ConvertForm({
           [blob.type]: blob,
         }),
       ]);
-      setShareError('📋 画像をコピーしました！Xの投稿画面で貼り付けてください');
-      setTimeout(() => setShareError(null), 3000);
+      setShareError('📋 画像をコピーしました！Xの投稿画面で Ctrl+V で貼り付けてね🖼️');
+      setTimeout(() => setShareError(null), 4000);
     } catch (err) {
       console.error('Clipboard error:', err);
-      setShareError('画像を保存してから投稿画面で添付してください');
-      setTimeout(() => setShareError(null), 3000);
+      setShareError('💡 画像を保存してからXに添付してね！');
+      setTimeout(() => setShareError(null), 4000);
     }
+  };
+
+  // バイラルテキストをクリップボードにコピー（画像とは別途）
+  const copyViralText = async () => {
+    const viralText = getViralShareText();
+    await navigator.clipboard.writeText(viralText);
+    setShareError('📝 投稿テキストをコピーしました！');
+    setTimeout(() => setShareError(null), 2000);
   };
 
   useEffect(() => {
@@ -334,6 +356,7 @@ export function ConvertForm({
                 transition={{ delay: 0.6 }}
                 className="flex flex-col gap-3"
               >
+                {/* メインの共有ボタン */}
                 <div className="flex flex-col sm:flex-row gap-2 justify-center">
                   <button
                     type="button"
@@ -373,7 +396,7 @@ export function ConvertForm({
                           </>
                         ) : (
                           <>
-                            <span>𝕏</span> 画像付きで投稿
+                            <span>𝕏</span> 画像付きで投稿 🔥
                           </>
                         )}
                       </button>
@@ -389,6 +412,26 @@ export function ConvertForm({
                     )
                   )}
                 </div>
+
+                {/* 画像がある場合の補助ボタン（PCブラウザ向け） */}
+                {generatedImageUrl && (
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center text-xs">
+                    <button
+                      type="button"
+                      onClick={copyViralText}
+                      className="text-gray-500 hover:text-gray-700 underline"
+                    >
+                      📝 投稿テキストだけコピー
+                    </button>
+                    <button
+                      type="button"
+                      onClick={copyImageToClipboard}
+                      className="text-gray-500 hover:text-gray-700 underline"
+                    >
+                      🖼️ 画像だけコピー
+                    </button>
+                  </div>
+                )}
 
                 {/* 共有時のフィードバックメッセージ */}
                 <AnimatePresence>
