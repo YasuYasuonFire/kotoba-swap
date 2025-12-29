@@ -32,28 +32,31 @@ Generate a vertical image for Instagram Stories (9:16 aspect ratio).
 The image MUST visually represent the transformation from a "Before" state to an "After" state.
 
 Content requirements:
-- Top section (Darker background, gray tones): Display the text "${beforeText}" clearly. Add a small "Before" label.
-- Center: A large downward arrow (↓) or transformation icon.
-- Bottom section (Brighter background, gradient from pink to orange): Display the text "${afterText}" clearly. Add a small "After" label.
-- Footer: Include the hashtag "#ことばスワップ".
-- Bottom Right: A small mascot character (round snowman-like, orange bowtie, pink cheeks).
+- Create a comical and heartwarming illustration that visually depicts the situation described in the text.
+- BEFORE: Depict the "Before" situation (${beforeText}) in a slightly chaotic or humorous way (gray/monochrome tones).
+- AFTER: Depict the "After" situation (${afterText}) in a bright, happy, and positive way (warm colors like pink/orange).
+- Transition: Use a visual element (like an arrow or magic sparkle) to connect the two scenes.
+- Character: Include a cute, round snowman-like mascot with an orange bowtie and pink cheeks interacting with the scene.
+
+Text overlay (low priority, keep it subtle if included):
+- "${beforeText}"
+- "${afterText}"
+- "#ことばスワップ"
 
 Style:
-- Modern and clean design.
-- Legible fonts (Japanese support required).
-- Soft gradients.
-- Moderate use of emojis.
-- High quality, professional graphic design.
+- Comical, illustrative, and vector art style.
+- Warm, inviting, and positive atmosphere.
+- High quality graphic design.
 
 Output ONLY the generated image. Do not provide a text description.
 `;
 
-    console.log('[Image Generation] Calling Gemini API (gemini-2.5-flash-image)...');
+    console.log('[Image Generation] Calling Gemini API (gemini-3-pro-image-preview)...');
     
-    // Gemini 2.5 Flash Image を使用
+    // Gemini 3 Pro Image Preview を使用
     try {
       const response = await genAI.models.generateContent({
-        model: 'gemini-2.5-flash-image',
+        model: 'gemini-3-pro-image-preview',
         contents: prompt,
         config: {
           imageConfig: {

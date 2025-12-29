@@ -39,6 +39,7 @@ export function ConvertForm({
   const [used, setUsed] = useState<"openai" | "fallback" | "">("");
   const [generatingImage, setGeneratingImage] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
 
   const seeded = useMemo(() => clampText(seedDraft || ""), [seedDraft]);
 
@@ -104,11 +105,8 @@ export function ConvertForm({
       const data = await res.json();
 
       if (data.success && data.image) {
-        // Base64画像をダウンロード
-        const link = document.createElement('a');
-        link.href = `data:${data.image.mimeType};base64,${data.image.data}`;
-        link.download = `kotoba-swap-${Date.now()}.png`;
-        link.click();
+        // Base64画像をStateにセットして表示
+        setGeneratedImageUrl(`data:${data.image.mimeType};base64,${data.image.data}`);
       }
     } catch (e) {
       console.error('Image generation error:', e);
@@ -252,6 +250,30 @@ export function ConvertForm({
                   )}
                 </button>
               </motion.div>
+
+              {generatedImageUrl && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.1 }}
+                  className="mt-6 flex flex-col items-center gap-4"
+                >
+                  <div className="relative w-full max-w-[300px] shadow-xl rounded-lg overflow-hidden border-4 border-white">
+                    <img 
+                      src={generatedImageUrl} 
+                      alt="生成されたシェア画像" 
+                      className="w-full h-auto"
+                    />
+                  </div>
+                  <a
+                    href={generatedImageUrl}
+                    download={`kotoba-swap-${Date.now()}.png`}
+                    className="showa-heisei-button py-2 px-6 text-sm font-medium flex items-center gap-2"
+                  >
+                    💾 画像を保存する
+                  </a>
+                </motion.div>
+              )}
 
               {alternatives.length > 0 && (
                 <motion.div
