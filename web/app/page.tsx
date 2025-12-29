@@ -2,14 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { ConvertForm } from "@/components/ConvertForm";
-import { HistoryPanel, type HistoryItem } from "@/components/HistoryPanel";
 import { SwipeDeck } from "@/components/SwipeDeck";
 import { SEED_PHRASES } from "@/lib/seedPhrases";
 
 import { Mascot } from "@/components/Mascot";
 
 export default function Home() {
-  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [draft, setDraft] = useState<string>("");
 
   const phrases = useMemo(() => SEED_PHRASES, []);
@@ -45,18 +43,9 @@ export default function Home() {
           <div className="showa-heisei-card p-4">
             <ConvertForm
               seedDraft={draft}
-              onConverted={(item) => setHistory((prev) => [item, ...prev])}
             />
           </div>
 
-          <details className="showa-heisei-card p-4">
-            <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
-              変換履歴（端末内）
-            </summary>
-            <div className="mt-3">
-              <HistoryPanel history={history} setHistory={setHistory} />
-            </div>
-          </details>
         </main>
       </div>
     </div>
