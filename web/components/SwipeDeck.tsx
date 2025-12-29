@@ -1,16 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SeedPhrase } from "@/lib/seedPhrases";
-
-function shuffle<T>(arr: T[]) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
+import { Mascot } from "@/components/Mascot";
 
 export function SwipeDeck({
   phrases,
@@ -19,10 +11,8 @@ export function SwipeDeck({
   phrases: SeedPhrase[];
   onUseAsDraft: (text: string) => void;
 }) {
-  const [deck, setDeck] = useState<SeedPhrase[]>(phrases);
-
   const [idx, setIdx] = useState(0);
-  const current = deck[idx] ?? deck[0];
+  const current = phrases[idx] ?? phrases[0];
 
   const startX = useRef<number | null>(null);
   const dragX = useRef(0);
@@ -32,10 +22,10 @@ export function SwipeDeck({
   });
 
   function next() {
-    setIdx((v) => (deck.length ? (v + 1) % deck.length : 0));
+    setIdx((v) => (phrases.length ? (v + 1) % phrases.length : 0));
   }
   function prev() {
-    setIdx((v) => (deck.length ? (v - 1 + deck.length) % deck.length : 0));
+    setIdx((v) => (phrases.length ? (v - 1 + phrases.length) % phrases.length : 0));
   }
 
   useEffect(() => {
@@ -46,7 +36,7 @@ export function SwipeDeck({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deck.length]);
+  }, [phrases.length]);
 
   function onPointerDown(e: React.PointerEvent) {
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -77,21 +67,10 @@ export function SwipeDeck({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4">
         <h3 className="text-lg font-medium text-gray-800">
           あなたの日常
         </h3>
-        <button
-          type="button"
-          className="showa-heisei-button px-3 py-2 text-sm"
-          onClick={() => {
-            setDeck(shuffle(phrases));
-            setIdx(0);
-            setDragStyle({ x: 0, rot: 0 });
-          }}
-        >
-          シャッフル
-        </button>
       </div>
 
       {!current ? (
@@ -112,8 +91,9 @@ export function SwipeDeck({
             onPointerCancel={onPointerUp}
           >
             <div className="text-center mb-4">
+              <Mascot className="mx-auto mb-2" />
               <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                {idx + 1} / {deck.length}
+                {idx + 1} / {phrases.length}
               </span>
             </div>
 
