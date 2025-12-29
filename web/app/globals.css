@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+body {
+  background-color: #f9fafb;
+  font-family: 'Hiragino Kaku Gothic ProN', 'ヒラギノ角ゴ ProN W3', 'Meiryo', 'メイリオ', sans-serif;
+  color: #1f2937;
+  margin: 0;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+.showa-heisei-card {
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+}
+
+.showa-heisei-button {
+  background-color: #f3f4f6;
+  border: 2px solid #d1d5db;
+  color: #1f2937;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.showa-heisei-button:hover {
+  background-color: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.showa-heisei-input {
+  background-color: #ffffff;
+  border: 2px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 16px;
+}
+
+.showa-heisei-title {
+  color: #374151;
+  font-weight: 700;
+  font-size: 1.5rem;
+}
