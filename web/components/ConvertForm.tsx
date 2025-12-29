@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 type Style = "前向き";
 
@@ -36,6 +37,8 @@ export function ConvertForm({
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState<string>("");
   const [used, setUsed] = useState<"openai" | "fallback" | "">("");
+  const [generatingImage, setGeneratingImage] = useState(false);
+  const [showCopied, setShowCopied] = useState(false);
 
   const seeded = useMemo(() => clampText(seedDraft || ""), [seedDraft]);
 
@@ -67,8 +70,52 @@ export function ConvertForm({
     }
   }
 
+  // バイラルコピー機能 - ハッシュタグとURLを自動追加
   async function copy(s: string) {
-    await navigator.clipboard.writeText(s);
+    const viralText = `${s}
+
+#ことばスワップ で私もポジティブになれた✨
+あなたも試してみて👉 ${typeof window !== 'undefined' ? window.location.origin : 'https://kotoba-swap.com'}`;
+
+    await navigator.clipboard.writeText(viralText);
+    setShowCopied(true);
+    setTimeout(() => setShowCopied(false), 2000);
+  }
+
+  // 画像生成機能
+  async function generateShareImage() {
+    if (!text || !converted) return;
+
+    setGeneratingImage(true);
+    try {
+      const res = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          beforeText: text,
+          afterText: converted,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('画像生成に失敗しました');
+      }
+
+      const data = await res.json();
+
+      if (data.success && data.image) {
+        // Base64画像をダウンロード
+        const link = document.createElement('a');
+        link.href = `data:${data.image.mimeType};base64,${data.image.data}`;
+        link.download = `kotoba-swap-${Date.now()}.png`;
+        link.click();
+      }
+    } catch (e) {
+      console.error('Image generation error:', e);
+      alert('画像生成に失敗しました。しばらくしてからもう一度お試しください。');
+    } finally {
+      setGeneratingImage(false);
+    }
   }
 
   return (
@@ -87,14 +134,36 @@ export function ConvertForm({
         />
 
         <div className="flex justify-center">
-          <button
+          <motion.button
             type="button"
             onClick={onSubmit}
             disabled={status === "loading"}
-            className="showa-heisei-button px-6 py-3 font-medium"
+            className="showa-heisei-button px-6 py-3 font-medium relative"
+            whileHover={{ scale: status === "loading" ? 1 : 1.05 }}
+            whileTap={{ scale: status === "loading" ? 1 : 0.95 }}
           >
-            {status === "loading" ? "変換中..." : "ポジ変換"}
-          </button>
+            {status === "loading" ? (
+              <motion.span className="flex items-center gap-2">
+                <motion.span
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                  className="inline-block"
+                >
+                  ✨
+                </motion.span>
+                変換中...
+                <motion.span
+                  animate={{ rotate: -360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                  className="inline-block"
+                >
+                  ✨
+                </motion.span>
+              </motion.span>
+            ) : (
+              "🔄 ポジ変換"
+            )}
+          </motion.button>
         </div>
 
         {status === "error" && (
@@ -103,23 +172,114 @@ export function ConvertForm({
           </div>
         )}
 
-        {converted && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="text-sm text-green-700 mb-2">変換結果</div>
-            <div className="text-lg leading-relaxed mb-3">
-              {converted}
-            </div>
-            <div className="flex justify-center">
-              <button
-                type="button"
-                onClick={() => copy(converted)}
-                className="showa-heisei-button py-2 px-4 text-sm font-medium"
+        <AnimatePresence mode="wait">
+          {converted && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, rotateX: -90 }}
+              animate={{ opacity: 1, scale: 1, rotateX: 0 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{
+                duration: 0.6,
+                ease: [0.34, 1.56, 0.64, 1],
+                opacity: { duration: 0.3 }
+              }}
+              className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-5 shadow-lg"
+            >
+              <motion.div
+                initial={{ y: -10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="text-sm text-green-700 mb-2 font-semibold flex items-center gap-2"
               >
-                コピー
-              </button>
-            </div>
-          </div>
-        )}
+                <motion.span
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ repeat: 3, duration: 0.5, delay: 0.3 }}
+                >
+                  ✨
+                </motion.span>
+                変換結果
+              </motion.div>
+
+              <motion.div
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="text-lg leading-relaxed mb-4 text-gray-800"
+              >
+                {converted}
+              </motion.div>
+
+              <motion.div
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="flex flex-col sm:flex-row gap-2 justify-center"
+              >
+                <button
+                  type="button"
+                  onClick={() => copy(converted)}
+                  className="showa-heisei-button py-2 px-6 text-sm font-medium relative overflow-hidden"
+                >
+                  {showCopied ? (
+                    <motion.span
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      className="flex items-center gap-1"
+                    >
+                      ✓ コピーしました！
+                    </motion.span>
+                  ) : (
+                    '📋 コピー'
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={generateShareImage}
+                  disabled={generatingImage}
+                  className="showa-heisei-button py-2 px-6 text-sm font-medium bg-gradient-to-r from-pink-50 to-orange-50 border-orange-300 hover:border-orange-400 disabled:opacity-50"
+                >
+                  {generatingImage ? (
+                    <motion.span
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                      className="inline-block"
+                    >
+                      🎨
+                    </motion.span>
+                  ) : (
+                    '🎨 画像生成'
+                  )}
+                </button>
+              </motion.div>
+
+              {alternatives.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  transition={{ delay: 0.8 }}
+                  className="mt-4 pt-4 border-t border-green-200"
+                >
+                  <div className="text-xs text-green-600 mb-2">他の変換案</div>
+                  <div className="space-y-2">
+                    {alternatives.map((alt, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ x: -20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: 0.9 + i * 0.1 }}
+                        className="text-sm text-gray-700 bg-white/50 p-2 rounded cursor-pointer hover:bg-white/80 transition-colors"
+                        onClick={() => copy(alt)}
+                      >
+                        {alt}
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
