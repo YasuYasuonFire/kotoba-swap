@@ -107,9 +107,6 @@ export function SwipeDeck({
               </span>
             </div>
 
-            <div className="text-center text-gray-700 text-sm font-medium whitespace-pre-wrap">
-              {current.from}
-            </div>
           </div>
 
           <div className="flex gap-3">
