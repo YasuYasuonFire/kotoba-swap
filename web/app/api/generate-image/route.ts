@@ -1,13 +1,13 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from 'next/server';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-
 export async function POST(request: NextRequest) {
+  console.log('[Image Generation] Request received');
   try {
     const { beforeText, afterText } = await request.json();
 
     if (!beforeText || !afterText) {
+      console.error('[Image Generation] Missing required fields');
       return NextResponse.json(
         { error: 'beforeText and afterText are required' },
         { status: 400 }
@@ -15,66 +15,103 @@ export async function POST(request: NextRequest) {
     }
 
     if (!process.env.GEMINI_API_KEY) {
+      console.error('[Image Generation] API Key missing');
       return NextResponse.json(
         { error: 'GEMINI_API_KEY is not configured' },
         { status: 500 }
       );
     }
+    console.log('[Image Generation] API Key check passed');
 
-    // Nano Banana (Gemini 2.5 Flash Image) を使用
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image' });
+    const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     // Instagram Stories最適サイズ（9:16）の画像生成プロンプト
+    // チャット形式の応答を防ぐため、命令形のプロンプトに変更
     const prompt = `
-美しいシェア画像を生成してください。
-縦長のInstagramストーリーズフォーマット（9:16比率）で、以下の内容を含めてください：
+Generate a vertical image for Instagram Stories (9:16 aspect ratio).
+The image MUST visually represent the transformation from a "Before" state to an "After" state.
 
-上部セクション（暗めの背景、グレー系）：
-"${beforeText}"
-小さく「Before」と表示
+Content requirements:
+- Top section (Darker background, gray tones): Display the text "${beforeText}" clearly. Add a small "Before" label.
+- Center: A large downward arrow (↓) or transformation icon.
+- Bottom section (Brighter background, gradient from pink to orange): Display the text "${afterText}" clearly. Add a small "After" label.
+- Footer: Include the hashtag "#ことばスワップ".
+- Bottom Right: A small mascot character (round snowman-like, orange bowtie, pink cheeks).
 
-中央に大きな下向き矢印 ↓ または変換を示すアイコン
+Style:
+- Modern and clean design.
+- Legible fonts (Japanese support required).
+- Soft gradients.
+- Moderate use of emojis.
+- High quality, professional graphic design.
 
-下部セクション（明るい背景、グラデーション - ピンクからオレンジ）：
-"${afterText}"
-小さく「After」と表示
-
-最下部：
-"#ことばスワップ"のハッシュタグ
-
-デザインスタイル：
-- モダンでクリーン
-- 読みやすいフォント（日本語対応）
-- 柔らかいグラデーション
-- 絵文字を適度に配置
-- マスコットキャラクター（可愛い雪だるまのような丸いキャラクター、オレンジの蝶ネクタイ、ピンクのほっぺ）を小さく右下に
+Output ONLY the generated image. Do not provide a text description.
 `;
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    });
-
-    const response = await result.response;
-    const generatedImage = response.candidates?.[0]?.content?.parts?.[0];
-
-    // 画像データの取得（Gemini APIの実際のレスポンス形式に応じて調整が必要）
-    if (generatedImage && 'inlineData' in generatedImage && generatedImage.inlineData) {
-      const imageData = generatedImage.inlineData;
-      return NextResponse.json({
-        success: true,
-        image: {
-          mimeType: imageData.mimeType,
-          data: imageData.data,
-        },
+    console.log('[Image Generation] Calling Gemini API (gemini-2.5-flash-image)...');
+    
+    // Gemini 2.5 Flash Image を使用
+    try {
+      const response = await genAI.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: prompt,
+        config: {
+          imageConfig: {
+              aspectRatio: '9:16'
+          }
+          // responseMimeType は画像生成では使用不可のため削除 
+        }
       });
+
+      console.log('[Image Generation] API Response received');
+      
+      const candidate = response.candidates?.[0];
+      if (!candidate || !candidate.content || !candidate.content.parts) {
+         throw new Error('No candidate content found');
+      }
+
+      // すべてのパートをチェックして画像データを探す
+      let imageData: any = null;
+      for (const part of candidate.content.parts) {
+        if (part.inlineData) {
+            imageData = part.inlineData;
+            break;
+        }
+      }
+
+      if (imageData) {
+        console.log('[Image Generation] Image data found, MIME:', imageData.mimeType);
+        return NextResponse.json({
+          success: true,
+          image: {
+            mimeType: imageData.mimeType || 'image/png',
+            data: imageData.data,
+          },
+        });
+      } else {
+        console.error('[Image Generation] No inlineData found in any part.');
+        // テキストパートがあればログ出力
+        const textParts = candidate.content.parts.filter((p: any) => p.text).map((p: any) => p.text);
+        if (textParts.length > 0) {
+            console.error('[Image Generation] Received text response instead:', textParts.join('\n'));
+        }
+      }
+
+    } catch (apiError: any) {
+      console.error('[Image Generation] API Specific Error:', apiError);
+      if (apiError.response) {
+        console.error('[Image Generation] API Error Response:', JSON.stringify(apiError.response, null, 2));
+      }
+      throw apiError;
     }
 
+    console.error('[Image Generation] Failed to extract image from response');
     return NextResponse.json(
       { error: 'Failed to generate image' },
       { status: 500 }
     );
   } catch (error) {
-    console.error('Image generation error:', error);
+    console.error('[Image Generation] Fatal Error:', error);
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
