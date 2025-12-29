@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { INPUT_EXAMPLES } from "@/lib/seedPhrases";
 
 type Style = "前向き";
 
@@ -43,11 +44,51 @@ export function ConvertForm({
 
   const seeded = useMemo(() => clampText(seedDraft || ""), [seedDraft]);
 
+  const twitterShareUrl = useMemo(() => {
+    if (!converted) return "";
+    const shareText = `${converted}\n\n#ことばスワップ でポジティブ変換しました✨`;
+    const url = typeof window !== 'undefined' ? window.location.origin : 'https://kotoba-swap.com';
+    return `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(url)}`;
+  }, [converted]);
+
   useEffect(() => {
     // 初期入力だけ自動セット（ユーザーが入力し始めた後は上書きしない）
     if (!seeded) return;
     setText((prev) => (prev ? prev : seeded));
   }, [seeded]);
+
+  // 画像生成機能
+  async function generateShareImage(sourceText: string, convertedText: string) {
+    if (!sourceText || !convertedText) return;
+
+    setGeneratingImage(true);
+    try {
+      const res = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          beforeText: sourceText,
+          afterText: convertedText,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('画像生成に失敗しました');
+      }
+
+      const data = await res.json();
+
+      if (data.success && data.image) {
+        // Base64画像をStateにセットして表示
+        setGeneratedImageUrl(`data:${data.image.mimeType};base64,${data.image.data}`);
+      }
+    } catch (e) {
+      console.error('Image generation error:', e);
+      // 自動実行なのでアラートは出さず、コンソールのみ
+    } finally {
+      setGeneratingImage(false);
+    }
+  }
 
   async function onSubmit() {
     const payload = clampText(text);
@@ -59,12 +100,19 @@ export function ConvertForm({
 
     setStatus("loading");
     setError("");
+    setConverted("");
+    setGeneratedImageUrl(null);
+
     try {
       const result = await postConvert({ text: payload, style });
       setConverted(result.converted);
       setAlternatives(result.alternatives);
       setUsed(result.used);
       setStatus("idle");
+      
+      // 変換成功時に自動で画像生成を実行
+      generateShareImage(payload, result.converted);
+      
     } catch (e) {
       setStatus("error");
       setError(e instanceof Error ? e.message : "変換に失敗しました");
@@ -83,39 +131,6 @@ export function ConvertForm({
     setTimeout(() => setShowCopied(false), 2000);
   }
 
-  // 画像生成機能
-  async function generateShareImage() {
-    if (!text || !converted) return;
-
-    setGeneratingImage(true);
-    try {
-      const res = await fetch('/api/generate-image', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          beforeText: text,
-          afterText: converted,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error('画像生成に失敗しました');
-      }
-
-      const data = await res.json();
-
-      if (data.success && data.image) {
-        // Base64画像をStateにセットして表示
-        setGeneratedImageUrl(`data:${data.image.mimeType};base64,${data.image.data}`);
-      }
-    } catch (e) {
-      console.error('Image generation error:', e);
-      alert('画像生成に失敗しました。しばらくしてからもう一度お試しください。');
-    } finally {
-      setGeneratingImage(false);
-    }
-  }
-
   return (
     <div>
       <h3 className="text-lg font-medium text-gray-800 mb-4">
@@ -123,9 +138,29 @@ export function ConvertForm({
       </h3>
 
       <div className="space-y-4">
+        {/* プリセット選択プルダウン */}
+        <select
+          className="showa-heisei-input w-full p-2 mb-2 text-sm text-gray-600 bg-white"
+          onChange={(e) => {
+            if (e.target.value) {
+              setText(e.target.value);
+            }
+          }}
+          defaultValue=""
+        >
+          <option value="" disabled>
+            例から選択して入力（選択すると上書きされます）
+          </option>
+          {INPUT_EXAMPLES.map((ex, i) => (
+            <option key={i} value={ex}>
+              {ex}
+            </option>
+          ))}
+        </select>
+
         <textarea
           className="showa-heisei-input w-full min-h-[120px] p-4 resize-none"
-          placeholder="例: 食べて飲んでばっかりだわ..."
+          placeholder="例: 食べて飲んでばっかりだわ...（自由に入力もできます）"
           value={text}
           onChange={(e) => setText(e.target.value)}
           maxLength={1000}
@@ -135,13 +170,13 @@ export function ConvertForm({
           <motion.button
             type="button"
             onClick={onSubmit}
-            disabled={status === "loading"}
-            className="showa-heisei-button px-6 py-3 font-medium relative"
-            whileHover={{ scale: status === "loading" ? 1 : 1.05 }}
-            whileTap={{ scale: status === "loading" ? 1 : 0.95 }}
+            disabled={status === "loading" || generatingImage}
+            className="showa-heisei-button px-6 py-3 font-medium relative w-full sm:w-auto"
+            whileHover={{ scale: (status === "loading" || generatingImage) ? 1 : 1.05 }}
+            whileTap={{ scale: (status === "loading" || generatingImage) ? 1 : 0.95 }}
           >
-            {status === "loading" ? (
-              <motion.span className="flex items-center gap-2">
+            {(status === "loading" || generatingImage) ? (
+              <motion.span className="flex items-center justify-center gap-2">
                 <motion.span
                   animate={{ rotate: 360 }}
                   transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
@@ -149,17 +184,10 @@ export function ConvertForm({
                 >
                   ✨
                 </motion.span>
-                変換中...
-                <motion.span
-                  animate={{ rotate: -360 }}
-                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                  className="inline-block"
-                >
-                  ✨
-                </motion.span>
+                {status === "loading" ? "変換中..." : "画像生成中..."}
               </motion.span>
             ) : (
-              "🔄 ポジ変換"
+              "✨ ポジ変換 ＆ 画像生成 🖼️"
             )}
           </motion.button>
         </div>
@@ -181,7 +209,7 @@ export function ConvertForm({
                 ease: [0.34, 1.56, 0.64, 1],
                 opacity: { duration: 0.3 }
               }}
-              className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-5 shadow-lg"
+              className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-5 shadow-lg mt-6"
             >
               <motion.div
                 initial={{ y: -10, opacity: 0 }}
@@ -202,7 +230,7 @@ export function ConvertForm({
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="text-lg leading-relaxed mb-4 text-gray-800"
+                className="text-lg leading-relaxed mb-4 text-gray-800 font-bold"
               >
                 {converted}
               </motion.div>
@@ -216,7 +244,7 @@ export function ConvertForm({
                 <button
                   type="button"
                   onClick={() => copy(converted)}
-                  className="showa-heisei-button py-2 px-6 text-sm font-medium relative overflow-hidden"
+                  className="showa-heisei-button py-2 px-6 text-sm font-medium relative overflow-hidden bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
                 >
                   {showCopied ? (
                     <motion.span
@@ -231,25 +259,23 @@ export function ConvertForm({
                   )}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={generateShareImage}
-                  disabled={generatingImage}
-                  className="showa-heisei-button py-2 px-6 text-sm font-medium bg-gradient-to-r from-pink-50 to-orange-50 border-orange-300 hover:border-orange-400 disabled:opacity-50"
-                >
-                  {generatingImage ? (
-                    <motion.span
-                      animate={{ rotate: 360 }}
-                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                      className="inline-block"
-                    >
-                      🎨
-                    </motion.span>
-                  ) : (
-                    '🎨 画像生成'
-                  )}
-                </button>
+                {twitterShareUrl && (
+                  <a
+                    href={twitterShareUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="showa-heisei-button py-2 px-6 text-sm font-medium bg-black text-white border-black hover:bg-gray-800 hover:border-gray-800 flex items-center justify-center gap-2"
+                  >
+                    <span>𝕏</span> 投稿する
+                  </a>
+                )}
               </motion.div>
+
+              {generatingImage && !generatedImageUrl && (
+                <div className="mt-6 text-center text-sm text-gray-500 animate-pulse">
+                   🎨 シェア用画像を生成中...
+                </div>
+              )}
 
               {generatedImageUrl && (
                 <motion.div
@@ -306,5 +332,3 @@ export function ConvertForm({
     </div>
   );
 }
-
-

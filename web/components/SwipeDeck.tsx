@@ -90,27 +90,21 @@ export function SwipeDeck({
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
           >
+            {current.imageUrl && (
+              <div className="mb-4 rounded-md overflow-hidden border border-gray-100 shadow-sm pointer-events-none flex justify-center bg-gray-50">
+                <img 
+                  src={current.imageUrl} 
+                  alt="sample" 
+                  className="w-full h-auto" 
+                />
+              </div>
+            )}
+
             <div className="text-center mb-4">
-              <Mascot className="mx-auto mb-2" />
+              {!current.imageUrl && <Mascot className="mx-auto mb-2" />}
               <span className="inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
                 {idx + 1} / {phrases.length}
               </span>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <div className="text-sm text-gray-600 mb-2">日常の言葉</div>
-                <div className="text-lg leading-relaxed">
-                  {current.from}
-                </div>
-              </div>
-
-              <div className="border-t border-gray-200 pt-4">
-                <div className="text-sm text-gray-600 mb-2">ポジティブ変換</div>
-                <div className="text-lg leading-relaxed font-medium">
-                  {current.to}
-                </div>
-              </div>
             </div>
           </div>
 
