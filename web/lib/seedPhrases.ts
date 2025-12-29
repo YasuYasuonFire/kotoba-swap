@@ -23,21 +23,21 @@ export const SEED_PHRASES: SeedPhrase[] = [
     category: "自堕落",
     from: "食べて飲んでばっかりだわ…",
     to: "栄養をしっかりチャージ中！来年も健康第一でいきましょう🎄",
-    imageUrl: "/kotoba-swap-1767013595901.png",
+    imageUrl: "/seed/kotoba-swap-eat.svg",
   },
   {
     id: "s004",
     category: "ダラダラ",
     from: "正月からダラダラしすぎてる",
     to: "充電期間として最適！来年の英気を養っていますわね💪",
-    imageUrl: "/kotoba-swap-1767015651758.png",
+    imageUrl: "/seed/kotoba-swap-rest.svg",
   },
   {
     id: "s016",
     category: "仕事",
     from: "仕事のメール来てるの無視したい",
     to: "心の準備が大事！来年の仕事も頑張りましょう💼",
-    imageUrl: "/kotoba-swap-1767015783886.png",
+    imageUrl: "/seed/kotoba-swap-work.svg",
   },
 ];
 
