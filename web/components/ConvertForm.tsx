@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { HistoryItem } from "@/components/HistoryPanel";
 
 type Style = "前向き";
 
@@ -27,10 +26,8 @@ async function postConvert(params: { text: string; style: Style }) {
 
 export function ConvertForm({
   seedDraft,
-  onConverted,
 }: {
   seedDraft: string;
-  onConverted: (item: HistoryItem) => void;
 }) {
   const [text, setText] = useState<string>("");
   const [style] = useState<Style>("前向き");
@@ -64,13 +61,6 @@ export function ConvertForm({
       setAlternatives(result.alternatives);
       setUsed(result.used);
       setStatus("idle");
-
-      onConverted({
-        id: crypto.randomUUID(),
-        from: payload,
-        to: result.converted,
-        createdAt: Date.now(),
-      });
     } catch (e) {
       setStatus("error");
       setError(e instanceof Error ? e.message : "変換に失敗しました");
