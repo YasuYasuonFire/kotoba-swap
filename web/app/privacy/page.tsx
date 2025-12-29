@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-black dark:text-zinc-50">
@@ -32,12 +34,12 @@ export default function PrivacyPage() {
           </section>
 
           <div className="pt-2">
-            <a
+            <Link
               className="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
               href="/"
             >
               ← 戻る
-            </a>
+            </Link>
           </div>
         </div>
       </div>

@@ -106,6 +106,10 @@ export function SwipeDeck({
                 {idx + 1} / {phrases.length}
               </span>
             </div>
+
+            <div className="text-center text-gray-700 text-sm font-medium whitespace-pre-wrap">
+              {current.from}
+            </div>
           </div>
 
           <div className="flex gap-3">
@@ -124,6 +128,14 @@ export function SwipeDeck({
               次へ →
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => onUseAsDraft(current.from)}
+            className="showa-heisei-button py-2 text-sm font-medium w-full bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
+          >
+            この文を入力にセット
+          </button>
 
           <div className="text-center text-xs text-gray-500">
             スワイプでも移動できます

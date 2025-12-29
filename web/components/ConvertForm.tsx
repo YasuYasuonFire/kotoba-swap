@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { INPUT_EXAMPLES } from "@/lib/seedPhrases";
+import { InstagramTikTokShareButtons } from "@/components/InstagramTikTokShareButtons";
 
 type Style = "前向き";
 
@@ -350,6 +351,12 @@ export function ConvertForm({
                 {converted}
               </motion.div>
 
+              {used && (
+                <div className="mb-3 text-xs text-green-700/80">
+                  変換エンジン: {used === "openai" ? "OpenAI" : "フォールバック"}
+                </div>
+              )}
+
               <motion.div
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
@@ -475,6 +482,13 @@ export function ConvertForm({
                   >
                     💾 画像を保存する
                   </a>
+
+                  <div className="w-full max-w-[360px]">
+                    <InstagramTikTokShareButtons
+                      convertedText={converted}
+                      imageDataUrl={generatedImageUrl}
+                    />
+                  </div>
                 </motion.div>
               )}
 
