@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { INPUT_EXAMPLES } from "@/lib/seedPhrases";
-import { InstagramTikTokShareButtons } from "@/components/InstagramTikTokShareButtons";
 
 type Style = "前向き";
 
@@ -403,7 +402,7 @@ export function ConvertForm({
                           </>
                         ) : (
                           <>
-                            <span>𝕏</span> 画像付きで投稿 🔥
+                            SNSでシェア
                           </>
                         )}
                       </button>
@@ -414,7 +413,7 @@ export function ConvertForm({
                         rel="noopener noreferrer"
                         className="showa-heisei-button py-2 px-6 text-sm font-medium bg-black text-white border-black hover:bg-gray-800 hover:border-gray-800 flex items-center justify-center gap-2"
                       >
-                        <span>𝕏</span> 投稿する
+                        SNSでシェア
                       </a>
                     )
                   )}
@@ -482,13 +481,6 @@ export function ConvertForm({
                   >
                     💾 画像を保存する
                   </a>
-
-                  <div className="w-full max-w-[360px]">
-                    <InstagramTikTokShareButtons
-                      convertedText={converted}
-                      imageDataUrl={generatedImageUrl}
-                    />
-                  </div>
                 </motion.div>
               )}
 
