@@ -231,8 +231,8 @@ export function ShareTestPage() {
           {/* デバッグ情報 */}
           <div className="mt-4 p-3 bg-gray-50 rounded text-xs text-gray-600">
             <div className="font-semibold mb-2">🔍 デバッグ情報</div>
-            <div>Web Share API対応: {typeof navigator !== 'undefined' && navigator.share ? "✅" : "❌"}</div>
-            <div>ファイル共有対応: {typeof navigator !== 'undefined' && navigator.canShare ? "✅" : "❌"}</div>
+            <div>Web Share API対応: {typeof navigator !== 'undefined' && !!(navigator as any).share ? "✅" : "❌"}</div>
+            <div>ファイル共有対応: {typeof navigator !== 'undefined' && !!(navigator as any).canShare ? "✅" : "❌"}</div>
             <div>クリップボード対応: {typeof navigator !== 'undefined' && navigator.clipboard ? "✅" : "❌"}</div>
             <div className="mt-2">
               <div className="font-medium">生成されるTwitter URL:</div>

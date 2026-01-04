@@ -32,7 +32,8 @@ bun dev
 ### デプロイ（Vercel想定）
 
 - Vercel に `web/` をプロジェクトとして接続してデプロイ
-- 環境変数に `OPENAI_API_KEY`（任意）を設定
+- （任意）環境変数に API キーを設定
+- **非公開化/連携解除**: ルートの `docs/vercel-unpublish.md` を参照
 
 ### 主なコード
 
