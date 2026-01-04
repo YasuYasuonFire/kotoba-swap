@@ -35,7 +35,7 @@
   - Claude API (Anthropic) - テキスト変換
   - Gemini API (Google) - Nano Banana画像生成
 - **アニメーション**: Framer Motion
-- **デプロイ**: Vercel
+- **デプロイ**: Vercel（※非公開化/連携解除の手順は `docs/vercel-unpublish.md` を参照）
 
 ## 📦 セットアップ
 
@@ -65,6 +65,10 @@ GEMINI_API_KEY=your_gemini_api_key_here
 # アプリケーション設定
 NEXT_PUBLIC_APP_NAME=コトバスワップ
 NEXT_PUBLIC_APP_DESCRIPTION=年末年始の日常をポジティブに変換
+
+# 本番サイトを非公開にする（Vercel Production のみ）
+SITE_BASIC_AUTH_USER=your_user
+SITE_BASIC_AUTH_PASS=your_password
 ```
 
 #### API Keyの取得方法
